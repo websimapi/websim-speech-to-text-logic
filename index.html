@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Speech To Text Logic</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>Robust Speech Recognition Pattern</h1>
+        <p class="subtitle">How to fix text duplication on mobile browsers</p>
+
+        <div class="content-area">
+            <pre id="explanation-text">
+/**
+ * ROBUST SPEECH-TO-TEXT STRATEGY
+ * 
+ * The Problem:
+ * Standard `SpeechRecognition` with `continuous: true` is broken on
+ * many Android devices. It causes the internal buffer to repeat
+ * previous segments, resulting in "Text Text Text Text".
+ * 
+ * The Solution:
+ * We use a "Manual Continuous Loop" strategy.
+ * 
+ * 1. CONFIGURATION
+ *    Set `continuous = false`. This forces the engine to return
+ *    a single final result and then stop.
+ * 
+ * 2. STATE MANAGEMENT
+ *    Maintain two variables:
+ *    - `fullTranscript`: A persistent string for the whole session.
+ *    - `interimText`: Temporary text for words being spoken now.
+ * 
+ * 3. HANDLING RESULTS (onresult)
+ *    - Loop through event results.
+ *    - If `isFinal` is true: Append text to `fullTranscript`.
+ *    - If `isFinal` is false: Set text to `interimText`.
+ *    - UI Display = fullTranscript + " " + interimText.
+ * 
+ * 4. THE LOOP (onend)
+ *    - When the engine stops (which it will do frequently because
+ *      continuous is false), check your app's `isListening` flag.
+ *    - If true, immediately call `recognition.start()`.
+ * 
+ * This bypasses the browser's internal buffer logic entirely,
+ * giving you full control over the string concatenation.
+ */
+
+class SpeechHandler {
+    constructor() {
+        // Init with continuous FALSE to prevent buffer bugs
+        this.recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        this.recognition.continuous = false; 
+        this.recognition.interimResults = true;
+        
+        this.fullTranscript = "";
+        this.isListening = false;
+        
+        this.recognition.onresult = (e) => {
+            let newInterim = "";
+            for (let i = e.resultIndex; i < e.results.length; ++i) {
+                if (e.results[i].isFinal) {
+                    this.fullTranscript += " " + e.results[i][0].transcript;
+                } else {
+                    newInterim += e.results[i][0].transcript;
+                }
+            }
+            console.log("Output:", this.fullTranscript + " " + newInterim);
+        };
+
+        this.recognition.onend = () => {
+            if (this.isListening) this.recognition.start();
+        };
+    }
+
+    start() {
+        this.isListening = true;
+        this.recognition.start();
+    }
+}
+            </pre>
+        </div>
+
+        <button id="copy-btn" class="action-btn">
+            Copy Documentation to Clipboard
+        </button>
+        <div id="toast" class="toast hidden">Copied!</div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
